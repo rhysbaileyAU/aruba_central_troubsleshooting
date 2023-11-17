@@ -3,14 +3,16 @@ import json
 import time
 import re
 import datetime
-
+import sys
 
 
 ##GLOBAL VARIABLES##
 groupname = "HeadOffice-WiFi"                   #Aruba Central Group from which to draw Test devices (IAP Virtual controllers)                               #Time to wait to allow iperf test to complete
 iperf_server_addr = "10.1.5.101"                #Address of iPerf3 server
 iperf_test_time = 5                             #Seconds to run the iperf test
-debug = 0                                       #Turn on debug visibility (0=disabled, 1=enabled)
+debug = 0
+output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/batch_speedtest_output/"
+credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"                                       #Turn on debug visibility (0=disabled, 1=enabled)
 
 
 def fn_get_ts_sessionid(ap_serial,debug):
@@ -225,7 +227,7 @@ def fn_get_tshooting_log(ap_serial,ts_session_id,debug):
 def fn_pars_speedtest_result_json(log):        
     global dict_result
 
-    sysname = re.search(r"([A-Za-z]+-AP+[1-99]|[A-Za-z]+-L\d+-AP+[1-99])",log)
+    sysname = re.search(r"((([A-Z]+-)|[^!:])[A-Za-z]+-AP+[1-99]|[A-Za-z]+-L\d+-AP+[1-99])",log)
     date = re.search(r"(\d+\sOct\s\d+|\d+\sNov\s\d+)",log)
 
     time_raw = re.search(r"Time of Execution :\w{1,3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}",log)
@@ -261,7 +263,7 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
 
     #Create dictionary for expired token credential details then write to 'credentials.old.json'
     dict_expired_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': fnc_api_token, 'refresh_token': fnc_refresh_token}
-    with open("credentials.old.json", "w") as file: 
+    with open(credentials_dir+"credentials.old.json", "w") as file: 
         json.dump(dict_expired_creds_out, file)     
     file.close()                                    
 
@@ -299,7 +301,7 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
     dict_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': api_token, 'refresh_token': refresh_token}
 
     #Output refreshed credentials to file 'credentials.json'
-    with open("credentials.json", "w") as file:     
+    with open(credentials_dir+"credentials.json", "w") as file:     
         json.dump(dict_creds_out, file)             
     file.close()
 
@@ -311,7 +313,7 @@ def fn_get_tokens():
     global client_id            
     global client_secret        
 
-    with open("credentials.json", "r") as file:     
+    with open(credentials_dir+"credentials.json", "r") as file:     
         dict_creds_in = json.load(file)             
 
         if debug == 1:
@@ -374,7 +376,11 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
         for ap in range(len(response_json["aps"])):
             if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
-        print("IAP Count: ",len(ap_site_dictionary))
+        if len(ap_site_dictionary) < 1:
+            print("ERROR: No Online Virtual Controllers in Group for testing")
+            exit()
+        elif len(ap_site_dictionary) >= 1:
+            print("IAP Count: ",len(ap_site_dictionary))
     elif response.status_code == 401:
         if debug == 1:
                 print("401 Unauthorized - Refreshing Tokens")
@@ -386,12 +392,26 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
 
 ###GLOBAL###
 
-##Run functions for test
+##Parse Arguments
 
-fn_get_all_iap_virtualcontrollers()
+if len(sys.argv) == 1:
+    print("ERROR - must specify test scope of '--group <group-name>' OR 'ALL'") 
+elif len(sys.argv) > 1:
+    testing_scope = (sys.argv[1])
+
+##Run functions for test
 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-resultsfilename = "./results_ALL_" +timestamp +".csv"
-testlogfilename = "testlog_ALL_" +timestamp +".txt"
+if testing_scope == "ALL":
+    print("Running tests on ALL Virtual Controllers")
+    fn_get_all_iap_virtualcontrollers()
+    resultsfilename = output_dir +"results_ALL_" +timestamp +".csv"
+    testlogfilename = output_dir +"testlog_ALL_" +timestamp +".txt"
+elif testing_scope == "--group":
+    testing_group = (sys.argv[2])
+    print("This will perform tests on all Virtual Controllers in group: "+testing_group)
+    fn_get_iap_virtualcontrollers_for_group(testing_group)
+    resultsfilename = output_dir +"results_group_"+testing_group+"_" +timestamp +".csv"
+    testlogfilename = output_dir +"testlog_group_"+testing_group+"_" +timestamp +".txt"
 print("Results file: " +resultsfilename)
 print("Test Log File: " +testlogfilename)
 
@@ -412,8 +432,10 @@ file.close()
 results_json = []                          
 for site, ap in ap_site_dictionary.items():
     ap_serial = ap
-    site_being_tested = site
-    print("Running Speedtest on "+ap_serial +" at site " +site_being_tested)
+    if isinstance(site, str) is True:
+        print("Running Speedtest on "+ap_serial +" at site " +site)
+    elif isinstance(site,str) is False:
+        print("Running Speedtest on "+ap_serial +" at no assigned site")
     fn_get_ts_sessionid(ap_serial,debug)                      
     fn_clear_ts_session(ap_serial,ts_session_id,debug)        
     fn_exec_iperf(ap_serial,iperf_server_addr,debug)          
