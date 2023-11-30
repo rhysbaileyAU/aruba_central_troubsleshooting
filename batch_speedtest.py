@@ -289,7 +289,7 @@ def fn_get_all_iap_virtualcontrollers():
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
         print("IAP Count: ",len(ap_site_dictionary))
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
         fn_get_all_iap_virtualcontrollers()
     else:
         print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
@@ -320,7 +320,7 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
         elif len(ap_site_dictionary) >= 1:
             print("IAP Count: ",len(ap_site_dictionary))
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
         fn_get_iap_virtualcontrollers_for_group(groupname)
     else:
         print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
@@ -372,13 +372,13 @@ for site, ap in ap_site_dictionary.items():
         print("Running Speedtest on "+ap_serial +" at site " +site)
     elif isinstance(site,str) is False:
         print("Running Speedtest on "+ap_serial +" at no assigned site")
-    fn_get_ts_sessionid(ap_serial,debug)                      
-    fn_clear_ts_session(ap_serial,ts_session_id,debug)        
-    fn_exec_iperf(ap_serial,iperf_server_addr,debug)          
+    fn_get_ts_sessionid(ap_serial)                      
+    fn_clear_ts_session(ap_serial,ts_session_id)        
+    fn_exec_iperf(ap_serial,iperf_server_addr)          
     time.sleep(15)                                  
-    fn_clear_ts_session(ap_serial,ts_session_id,debug)        
-    fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug)
-    fn_get_tshooting_log(ap_serial,ts_session_id,debug)       
+    fn_clear_ts_session(ap_serial,ts_session_id)        
+    fn_fetch_iperf_result(ap_serial,iperf_server_addr)
+    fn_get_tshooting_log(ap_serial,ts_session_id)       
     fn_pars_speedtest_result_json(ts_output)                                
     results_json.append(dict_result)
     with open(resultsfilename, "a") as resultsfile:
