@@ -7,12 +7,11 @@ import sys
 
 
 ##GLOBAL VARIABLES##
-groupname = "HeadOffice-WiFi"                   #Aruba Central Group from which to draw Test devices (IAP Virtual controllers)                               #Time to wait to allow iperf test to complete
-iperf_server_addr = "10.1.5.101"                #Address of iPerf3 server
-iperf_test_time = 5                             #Seconds to run the iperf test
-debug = 0
+                                  
+iperf_server_addr = "10.1.5.101"          
+iperf_test_time = 5                             
 output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/batch_speedtest_output/"
-credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"                                       #Turn on debug visibility (0=disabled, 1=enabled)
+credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"                                       
 
 
 def fn_get_ts_sessionid(ap_serial,debug):
@@ -20,10 +19,6 @@ def fn_get_ts_sessionid(ap_serial,debug):
     fn_get_tokens()          
 
     global ts_session_id
-
-    if debug == 1: 
-        print("Get current troubleshooting ID for IAP "+ap_serial)
-        print("API Token: ",api_token)
 
     url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"/session"
     payload = {}
@@ -34,12 +29,7 @@ def fn_get_ts_sessionid(ap_serial,debug):
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
-        if debug == 1:
-            print("Function - fn_get_ts_sessionid")
-            print("URL:",url)
-            print("Response:",response.text) 
-        else:
-            ts_session_id = response_json['session_id']
+        ts_session_id = response_json['session_id']
     elif response.status_code == 401:
         fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
         fn_get_ts_sessionid(ap_serial,debug)
@@ -48,15 +38,11 @@ def fn_get_ts_sessionid(ap_serial,debug):
     else:
         print("Error getting sessionID for IAP ",ap_serial,"- code: ",response," ",response.text)
         exit()
-
-        
+      
 def fn_clear_ts_session(ap_serial,ts_session_id,debug):
     if ts_session_id > 0:
 
         fn_get_tokens()
-
-        if debug == 1: 
-            print("Clear current troubleshooting ID for IAP "+ap_serial)
 
         url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
         payload = {}
@@ -65,25 +51,15 @@ def fn_clear_ts_session(ap_serial,ts_session_id,debug):
         }
         response = requests.request("DELETE", url, headers=headers, data=payload)
 
-        if response.status_code == 200:
-            if debug == 1:
-                print("Troubleshooting session ID ",ts_session_id," Cleared Successfully on ",ap_serial)
-        elif response.status_code == 401:
+        if response.status_code == 401:
             if debug == 1:
                 print("401 Unauthorized - Refreshing Tokens")
             fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
             fn_clear_ts_session(ap_serial,ts_session_id,debug)
-    else:
-        if debug == 1: 
-             print("No Troubleshooting ID Found")
-
 
 def fn_exec_iperf(ap_serial,iperf_server_addr,debug):
     global ts_session_id
     fn_get_tokens()
-
-    if debug == 1:   
-        print("3. Start troubleshooting session for IAP "+ap_serial)
 
     url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)
 
@@ -122,11 +98,7 @@ def fn_exec_iperf(ap_serial,iperf_server_addr,debug):
             print("ERROR(3) - Unable to queue troubleshooting command, please try again")
             exit()
         ts_session_id = response_json['session_id']
-        if debug == 1: 
-            print("Command has been triggered - SessionID=",ts_session_id)
     elif response.status_code == 401:
-        if debug == 1:
-            print("401 Unauthorized - Refreshing Tokens")
         fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
         fn_exec_iperf(ap_serial,iperf_server_addr,debug)
     else:
@@ -136,8 +108,6 @@ def fn_exec_iperf(ap_serial,iperf_server_addr,debug):
 def fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug):  
     global ts_session_id
     fn_get_tokens()               
-    if debug == 1: 
-        print("6. Start troubleshooting session for IAP "+ap_serial)
 
     url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)
 
@@ -176,17 +146,12 @@ def fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug):
             print("ERROR(6) - Unable to queue troubleshooting command, please try again")
             exit()
         ts_session_id = response_json['session_id']
-        if debug == 1: 
-            print("Troubleshooting sessionID=",ts_session_id)
     elif response.status_code == 401:
-        if debug == 1:
-            print("401 Unauthorized - Refreshing Tokens")
         fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
         fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug)
     else:
         print("Error queueing collection of iPerf Test Results - code: ",response," ",response.text)
         exit()
-
 
 def fn_get_tshooting_log(ap_serial,ts_session_id,debug):      
     
@@ -194,8 +159,6 @@ def fn_get_tshooting_log(ap_serial,ts_session_id,debug):
     
     global ts_output
 
-    if debug == 1: 
-        print("7. Get troubleshooting Output for IAP "+ap_serial)
     url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
 
     payload = {}
@@ -206,14 +169,14 @@ def fn_get_tshooting_log(ap_serial,ts_session_id,debug):
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
-        ts_hostname = response_json['hostname']
-        ts_serial = response_json['serial']
-        ts_output = response_json['output']
-        if debug == 1:
-            print("")
-            print("")
-            print(ts_hostname, "("+ts_serial+")")
-            print(ts_output)
+        ts_status = response_json['status']
+        #ts_hostname = response_json['hostname']
+        #ts_serial = response_json['serial']
+        if ts_status == "COMPLETED":
+                ts_output = response_json['output']
+        else:
+            time.sleep(5)
+            fn_get_tshooting_log(ap_serial,ts_session_id,debug)
     elif response.status_code == 401:
         if debug == 1:
             print("401 Unauthorized - Refreshing Tokens")
@@ -222,7 +185,6 @@ def fn_get_tshooting_log(ap_serial,ts_session_id,debug):
     else:
         print("Error fetching Troubleshooting Log - code: ",response," ",response.text)
         exit()
-
 
 def fn_pars_speedtest_result_json(log):        
     global dict_result
@@ -255,7 +217,6 @@ def fn_pars_speedtest_result_json(log):
         "Client IP": client[1]
     }
 
-
 def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_secret,debug):          
 
     global api_token                               
@@ -266,12 +227,6 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
     with open(credentials_dir+"credentials.old.json", "w") as file: 
         json.dump(dict_expired_creds_out, file)     
     file.close()                                    
-
-    if debug == 1:                                      
-        print("old_api_token: ",fnc_api_token)
-        print("old_refresh_token: ",fnc_refresh_token)
-        print("ClientID: ",fnc_client_id)
-        print("Client Secret: ",fnc_client_secret)
 
     url = "https://apigw-apaceast.central.arubanetworks.com/oauth2/token?client_id={0}".format(client_id)+"&client_secret={0}".format(client_secret)+"&grant_type=refresh_token&refresh_token={0}".format(refresh_token)
 
@@ -284,18 +239,9 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
         print("ERROR Code 400: Invalid Refresh Token - Create new Token in Aruba Central and populate credentials.json" )
         exit()
     
-    if debug == 1:
-        print(response)
-        print(response.text)
-
     response_json = json.loads(response.text)           #Load response into JSON
     api_token = response_json["access_token"]           #Read returned API token into varibale 'api_token'
     refresh_token = response_json["refresh_token"]      #Read returned refresh token into variable 'refresh_token'
-
-
-    if debug == 1:
-        print("new_api_token: ",api_token)
-        print("new_refresh_token: ",refresh_token)
 
     #Create dictionary for updated credential details
     dict_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': api_token, 'refresh_token': refresh_token}
@@ -304,7 +250,6 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
     with open(credentials_dir+"credentials.json", "w") as file:     
         json.dump(dict_creds_out, file)             
     file.close()
-
 
 def fn_get_tokens():            
 
@@ -315,11 +260,6 @@ def fn_get_tokens():
 
     with open(credentials_dir+"credentials.json", "r") as file:     
         dict_creds_in = json.load(file)             
-
-        if debug == 1:
-            print("Import from File:")
-            print(dict_creds_in)
-
 
         #Define script variables from file
         api_token = dict_creds_in["api_token"]
@@ -349,8 +289,6 @@ def fn_get_all_iap_virtualcontrollers():
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
         print("IAP Count: ",len(ap_site_dictionary))
     elif response.status_code == 401:
-        if debug == 1:
-                print("401 Unauthorized - Refreshing Tokens")
         fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
         fn_get_all_iap_virtualcontrollers()
     else:
@@ -382,8 +320,6 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
         elif len(ap_site_dictionary) >= 1:
             print("IAP Count: ",len(ap_site_dictionary))
     elif response.status_code == 401:
-        if debug == 1:
-                print("401 Unauthorized - Refreshing Tokens")
         fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
         fn_get_iap_virtualcontrollers_for_group(groupname)
     else:
@@ -392,14 +328,14 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
 
 ###GLOBAL###
 
-##Parse Arguments
-
+##Parse Command-Line Arguments
 if len(sys.argv) == 1:
-    print("ERROR - must specify test scope of '--group <group-name>' OR 'ALL'") 
+    print("ERROR - must specify test scope of '--group <group-name>' OR 'ALL'")
+    exit() 
 elif len(sys.argv) > 1:
     testing_scope = (sys.argv[1])
 
-##Run functions for test
+##Establish Scope for Batch and create output files
 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 if testing_scope == "ALL":
     print("Running tests on ALL Virtual Controllers")
@@ -428,7 +364,7 @@ with open(resultsfilename, "w") as file:
     file.write("\nDate,Time,SystemName,SerialNumber,downstream_mbps,upstream_mbps")
 file.close()
 
-
+#Loop through Batch scope and run speedtest functions sequentially
 results_json = []                          
 for site, ap in ap_site_dictionary.items():
     ap_serial = ap
@@ -442,7 +378,6 @@ for site, ap in ap_site_dictionary.items():
     time.sleep(15)                                  
     fn_clear_ts_session(ap_serial,ts_session_id,debug)        
     fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug)
-    time.sleep(5) 
     fn_get_tshooting_log(ap_serial,ts_session_id,debug)       
     fn_pars_speedtest_result_json(ts_output)                                
     results_json.append(dict_result)
