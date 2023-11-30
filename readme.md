@@ -6,7 +6,7 @@ Uses Aruba Central API to perform iPerf tests across multiple IAPs.
 
 ## Version 1.0.1 ##
 Usage:
-1. Populate API credentials into 'credentials.json'
+1. Generate API Token in Aruba Central and populate API credentials into 'credentials.json' (see sample)
 2. Edit python global variables at top of file
     - iperf_server_addr = "(address of iperf server)"          
     - iperf_test_time = 5   (seconds to run iperf test)                           
