@@ -7,20 +7,20 @@ import sys
 
 
 ##GLOBAL VARIABLES##
-                                  
 iperf_server_addr = "10.1.5.101"          
 iperf_test_time = 5                             
-output_dir = "/temp/"
-credentials_dir = "/temp/"                                       
+output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/batch_speedtest_output/"
+credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"
+region = "APAC-EAST1"
 
 
-def fn_get_ts_sessionid(ap_serial,debug):
+def fn_get_ts_sessionid(ap_serial):
 
     fn_get_tokens()          
 
     global ts_session_id
 
-    url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"/session"
+    url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"/session"
     payload = {}
     headers = {
         'Authorization': 'Bearer '+api_token
@@ -31,20 +31,20 @@ def fn_get_ts_sessionid(ap_serial,debug):
         response_json = json.loads(response.text)
         ts_session_id = response_json['session_id']
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
-        fn_get_ts_sessionid(ap_serial,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_get_ts_sessionid(ap_serial)
     elif response.status_code == 404:
         ts_session_id = 0
     else:
         print("Error getting sessionID for IAP ",ap_serial,"- code: ",response," ",response.text)
         exit()
       
-def fn_clear_ts_session(ap_serial,ts_session_id,debug):
+def fn_clear_ts_session(ap_serial,ts_session_id):
     if ts_session_id > 0:
 
         fn_get_tokens()
 
-        url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
+        url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
         payload = {}
         headers = {
             'Authorization': 'Bearer '+api_token
@@ -52,16 +52,14 @@ def fn_clear_ts_session(ap_serial,ts_session_id,debug):
         response = requests.request("DELETE", url, headers=headers, data=payload)
 
         if response.status_code == 401:
-            if debug == 1:
-                print("401 Unauthorized - Refreshing Tokens")
-            fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
-            fn_clear_ts_session(ap_serial,ts_session_id,debug)
+            fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+            fn_clear_ts_session(ap_serial,ts_session_id)
 
-def fn_exec_iperf(ap_serial,iperf_server_addr,debug):
+def fn_exec_iperf(ap_serial,iperf_server_addr):
     global ts_session_id
     fn_get_tokens()
 
-    url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)
+    url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)
 
     payload = json.dumps({
         "device_type": "IAP",
@@ -99,17 +97,17 @@ def fn_exec_iperf(ap_serial,iperf_server_addr,debug):
             exit()
         ts_session_id = response_json['session_id']
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
-        fn_exec_iperf(ap_serial,iperf_server_addr,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_exec_iperf(ap_serial,iperf_server_addr)
     else:
         print("Error Queueing iPerf Test - code: ",response," ",response.text)
         exit()
 
-def fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug):  
+def fn_fetch_iperf_result(ap_serial,iperf_server_addr):  
     global ts_session_id
     fn_get_tokens()               
 
-    url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)
+    url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)
 
     payload = json.dumps({
         "device_type": "IAP",
@@ -147,19 +145,19 @@ def fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug):
             exit()
         ts_session_id = response_json['session_id']
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
-        fn_fetch_iperf_result(ap_serial,iperf_server_addr,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_fetch_iperf_result(ap_serial,iperf_server_addr)
     else:
         print("Error queueing collection of iPerf Test Results - code: ",response," ",response.text)
         exit()
 
-def fn_get_tshooting_log(ap_serial,ts_session_id,debug):      
+def fn_get_tshooting_log(ap_serial,ts_session_id):      
     
     fn_get_tokens()
     
     global ts_output
 
-    url = "https://apigw-apaceast.central.arubanetworks.com/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
+    url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
 
     payload = {}
     headers = {
@@ -176,12 +174,10 @@ def fn_get_tshooting_log(ap_serial,ts_session_id,debug):
                 ts_output = response_json['output']
         else:
             time.sleep(5)
-            fn_get_tshooting_log(ap_serial,ts_session_id,debug)
+            fn_get_tshooting_log(ap_serial,ts_session_id)
     elif response.status_code == 401:
-        if debug == 1:
-            print("401 Unauthorized - Refreshing Tokens")
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret,debug)
-        fn_get_tshooting_log(ap_serial,ts_session_id,debug)
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_get_tshooting_log(ap_serial,ts_session_id)
     else:
         print("Error fetching Troubleshooting Log - code: ",response," ",response.text)
         exit()
@@ -190,7 +186,7 @@ def fn_pars_speedtest_result_json(log):
     global dict_result
 
     sysname = re.search(r"((([A-Z]+-)|[^!:])[A-Za-z]+-AP+[1-99]|[A-Za-z]+-L\d+-AP+[1-99])",log)
-    date = re.search(r"(\d+\sOct\s\d+|\d+\sNov\s\d+)",log)
+    date = re.search(r"(\d+\sJan\s\d+|\d+\sFeb\s\d+|\d+\sMar\s\d+|\d+\sApr\s\d+|\d+\sMay\s\d+|\d+\sJun\s\d+|\d+\sJul\s\d+|\d+\sAug\s\d+|\d+\sSep\s\d+|\d+\sOct\s\d+|\d+\sNov\s\d+|\d+\sDec\s\d+)",log)
 
     time_raw = re.search(r"Time of Execution :\w{1,3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}",log)
     time = re.split(" ",time_raw.group(),maxsplit=7)
@@ -217,7 +213,7 @@ def fn_pars_speedtest_result_json(log):
         "Client IP": client[1]
     }
 
-def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_secret,debug):          
+def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_secret):          
 
     global api_token                               
     global refresh_token                            
@@ -228,7 +224,7 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
         json.dump(dict_expired_creds_out, file)     
     file.close()                                    
 
-    url = "https://apigw-apaceast.central.arubanetworks.com/oauth2/token?client_id={0}".format(client_id)+"&client_secret={0}".format(client_secret)+"&grant_type=refresh_token&refresh_token={0}".format(refresh_token)
+    url = "https://{0}".format(region_specific_url)+"/oauth2/token?client_id={0}".format(client_id)+"&client_secret={0}".format(client_secret)+"&grant_type=refresh_token&refresh_token={0}".format(refresh_token)
 
     payload = {}
     headers = {}
@@ -273,7 +269,7 @@ def fn_get_all_iap_virtualcontrollers():
     
     fn_get_tokens()
     
-    url = "https://apigw-apaceast.central.arubanetworks.com/monitoring/v2/aps?limit=250"
+    url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?limit=250"
 
     payload = {}
     headers = {
@@ -300,7 +296,7 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
     
     fn_get_tokens()
     
-    url = "https://apigw-apaceast.central.arubanetworks.com/monitoring/v2/aps?group={0}".format(groupname)
+    url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?group={0}".format(groupname)
 
     payload = {}
     headers = {
@@ -327,6 +323,30 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
         exit()
 
 ###GLOBAL###
+## Select region URL based on region variable ##
+if region == "US-1":
+    region_specific_url = "app1-apigw.central.arubanetworks.com"
+elif region == "US-2":
+    region_specific_url = "app1-apigw.central.arubanetworks.com"
+elif region == "US-WEST-4":
+    region_specific_url = "app1-apigw.central.arubanetworks.com"
+elif region == "EU-1":
+    region_specific_url = "eu-apigw.central.arubanetworks.com"
+elif region == "EU-2":
+    region_specific_url = "apigw-eucentral2.central.arubanetworks.com"
+elif region == "EU-3":
+    region_specific_url = "apigw-eucentral3.central.arubanetworks.com"
+elif region == "Canada-1":
+    region_specific_url = "apigw-ca.central.arubanetworks.com"
+elif region == "China-1":
+    region_specific_url = "apigw.central.arubanetworks.com.cn"
+elif region == "APAC-1":
+    region_specific_url = "api-ap.central.arubanetworks.com"
+elif region == "APAC-EAST1":
+    region_specific_url = "apigw-apaceast.central.arubanetworks.com"
+elif region == "APAC-SOUTH1":
+    region_specific_url = "apigw-apacsouth.central.arubanetworks.com"    
+
 
 ##Parse Command-Line Arguments
 if len(sys.argv) == 1:
