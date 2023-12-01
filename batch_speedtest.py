@@ -9,8 +9,8 @@ import sys
 ##GLOBAL VARIABLES##
 iperf_server_addr = "10.1.5.101"          
 iperf_test_time = 5                             
-output_dir = "/temp/"
-credentials_dir = "/temp/"
+output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/batch_speedtest_output/"
+credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"
 region = "APAC-EAST1"
 
 
@@ -302,11 +302,12 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
     headers = {
     'Authorization': 'Bearer '+api_token
     }
-
     response = requests.request("GET", url, headers=headers, data=payload)
+
     if response.status_code == 200:
         response_json = json.loads(response.text)
         ap_site_dictionary = {}
+
         for ap in range(len(response_json["aps"])):
             if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
@@ -322,55 +323,161 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
         print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
         exit()
 
-###GLOBAL###
-## Select region URL based on region variable ##
-if region == "US-1":
-    region_specific_url = "app1-apigw.central.arubanetworks.com"
-elif region == "US-2":
-    region_specific_url = "app1-apigw.central.arubanetworks.com"
-elif region == "US-WEST-4":
-    region_specific_url = "app1-apigw.central.arubanetworks.com"
-elif region == "EU-1":
-    region_specific_url = "eu-apigw.central.arubanetworks.com"
-elif region == "EU-2":
-    region_specific_url = "apigw-eucentral2.central.arubanetworks.com"
-elif region == "EU-3":
-    region_specific_url = "apigw-eucentral3.central.arubanetworks.com"
-elif region == "Canada-1":
-    region_specific_url = "apigw-ca.central.arubanetworks.com"
-elif region == "China-1":
-    region_specific_url = "apigw.central.arubanetworks.com.cn"
-elif region == "APAC-1":
-    region_specific_url = "api-ap.central.arubanetworks.com"
-elif region == "APAC-EAST1":
-    region_specific_url = "apigw-apaceast.central.arubanetworks.com"
-elif region == "APAC-SOUTH1":
-    region_specific_url = "apigw-apacsouth.central.arubanetworks.com"    
+def fn_get_iap_virtualcontrollers_for_site(sitename):
+    global ap_site_dictionary
+    
+    fn_get_tokens()
+    
+    url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?site={0}".format(sitename)
 
+    payload = {}
+    headers = {
+    'Authorization': 'Bearer '+api_token
+    }
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    if response.status_code == 200:
+        response_json = json.loads(response.text)
+        ap_site_dictionary = {}
+        for ap in range(len(response_json["aps"])):
+            if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
+                ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
+        if len(ap_site_dictionary) < 1:
+            print("ERROR: No Online Virtual Controllers in Site for testing")
+            exit()
+        elif len(ap_site_dictionary) >= 1:
+            print("IAP Count: ",len(ap_site_dictionary))
+    elif response.status_code == 401:
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_get_iap_virtualcontrollers_for_group(sitename)
+    else:
+        print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
+        exit()
+
+def fn_list_aruba_central_sites():
+
+    fn_get_tokens()
+
+    url = "https://{0}".format(region_specific_url)+"/central/v2/sites?limit=500"
+
+    payload = {}
+    headers = {
+        'Authorization': 'Bearer '+api_token
+    }
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    if response.status_code == 200:
+        response_json = json.loads(response.text)
+        print("Aruba Central Sites:")
+        print("=====================")
+        for site in range(len(response_json["sites"])):
+            print(response_json["sites"][site]["site_name"])
+        exit()   
+    elif response.status_code == 401:
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_list_aruba_central_sites()
+    else:
+        print("Error fetching list of Sites - code: ",response," ",response.text)
+        exit()
+
+def fn_list_aruba_central_groups():
+
+    fn_get_tokens()
+
+    url = "https://{0}".format(region_specific_url)+"/configuration/v2/groups?limit=100&offset=0"
+
+    payload = {}
+    headers = {
+        'Authorization': 'Bearer '+api_token
+    }
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    if response.status_code == 200:
+        response_json = json.loads(response.text)
+        print("Aruba Central Groups:")
+        print("=====================")
+        for group in range(len(response_json["data"])):
+            print(response_json["data"][group][0])
+        exit()
+    elif response.status_code == 401:
+        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
+        fn_list_aruba_central_groups()   
+    else:
+        print("Error fetching list of Groups - code: ",response," ",response.text)
+        exit()
+
+def fn_display_expected_arguments():
+    print("Expecting Arguments:")
+    print(" '--ALL' - Batch Speedtest all Virtual Controllers")
+    print(" '--group <group-name> or list' - Batch Speedtest all Virtual Controllers in Group")
+    print(" '--site <site-name> or list - Speed Test IAP at Site")
+    exit()
+
+def fn_get_api_url_for_region(region):
+    global region_specific_url
+    ## Select region URL based on region variable ##
+    if region == "US-1":
+        region_specific_url = "app1-apigw.central.arubanetworks.com"
+    elif region == "US-2":
+        region_specific_url = "app1-apigw.central.arubanetworks.com"
+    elif region == "US-WEST-4":
+        region_specific_url = "app1-apigw.central.arubanetworks.com"
+    elif region == "EU-1":
+        region_specific_url = "eu-apigw.central.arubanetworks.com"
+    elif region == "EU-2":
+        region_specific_url = "apigw-eucentral2.central.arubanetworks.com"
+    elif region == "EU-3":
+        region_specific_url = "apigw-eucentral3.central.arubanetworks.com"
+    elif region == "Canada-1":
+        region_specific_url = "apigw-ca.central.arubanetworks.com"
+    elif region == "China-1":
+        region_specific_url = "apigw.central.arubanetworks.com.cn"
+    elif region == "APAC-1":
+        region_specific_url = "api-ap.central.arubanetworks.com"
+    elif region == "APAC-EAST1":
+        region_specific_url = "apigw-apaceast.central.arubanetworks.com"
+    elif region == "APAC-SOUTH1":
+        region_specific_url = "apigw-apacsouth.central.arubanetworks.com"    
+
+###GLOBAL###
+##Select Region##
+fn_get_api_url_for_region(region)
 
 ##Parse Command-Line Arguments
-if len(sys.argv) == 1:
-    print("ERROR - must specify test scope of '--group <group-name>' OR 'ALL'")
-    exit() 
-elif len(sys.argv) > 1:
+if ((len(sys.argv) > 1) and ((sys.argv[1] == "--group")or(sys.argv[1] == "--site")or(sys.argv[1] == "--ALL"))):
     testing_scope = (sys.argv[1])
+else:
+    fn_display_expected_arguments()
 
 ##Establish Scope for Batch and create output files
 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-if testing_scope == "ALL":
+if testing_scope == "--ALL":
     print("Running tests on ALL Virtual Controllers")
     fn_get_all_iap_virtualcontrollers()
     resultsfilename = output_dir +"results_ALL_" +timestamp +".csv"
     testlogfilename = output_dir +"testlog_ALL_" +timestamp +".txt"
 elif testing_scope == "--group":
-    testing_group = (sys.argv[2])
-    print("This will perform tests on all Virtual Controllers in group: "+testing_group)
-    fn_get_iap_virtualcontrollers_for_group(testing_group)
-    resultsfilename = output_dir +"results_group_"+testing_group+"_" +timestamp +".csv"
-    testlogfilename = output_dir +"testlog_group_"+testing_group+"_" +timestamp +".txt"
+    if len(sys.argv) < 3 or sys.argv[2] == 'list':
+        fn_list_aruba_central_groups()
+    else:
+        test_groupname = (sys.argv[2])
+        print("This will perform tests on all Virtual Controllers in group: "+test_groupname)
+        fn_get_iap_virtualcontrollers_for_group(test_groupname)
+        resultsfilename = output_dir +"results_group_"+test_groupname+"_" +timestamp +".csv"
+        testlogfilename = output_dir +"testlog_group_"+test_groupname+"_" +timestamp +".txt"
+elif testing_scope == "--site":
+    if len(sys.argv) < 3 or sys.argv[2] == 'list':
+        fn_list_aruba_central_sites()
+    else:
+        test_sitename = (sys.argv[2])
+        print("This will perform tests on all Virtual Controllers at site: "+test_sitename)
+        fn_get_iap_virtualcontrollers_for_site(test_sitename)
+        resultsfilename = output_dir +"results_site_"+test_sitename+"_" +timestamp +".csv"
+        testlogfilename = output_dir +"testlog_site_"+test_sitename+"_" +timestamp +".txt"
 print("Results file: " +resultsfilename)
 print("Test Log File: " +testlogfilename)
 
+## Write Test Scope to Test Log File ##
 with open(testlogfilename, "w") as file:
     file.write("Start of Testing Window: "+timestamp)
     file.write("\nAPs in Scope of test window: ")
