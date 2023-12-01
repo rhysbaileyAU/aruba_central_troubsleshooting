@@ -1,7 +1,7 @@
-Batch SpeedTest Tool
+# Aruba Central Batch SpeedTest Script #
 
 Description:
-Uses Aruba Central API to perform iPerf tests across multiple IAPs.
+Uses Aruba Central API to perform iPerf on IAP Virtual Controllers.
 
 
 ## Version 1.0.1 ##
