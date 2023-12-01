@@ -1,10 +1,10 @@
-# Aruba Central Batch SpeedTest Script #
+# Aruba Central API Scripts for Troubleshooting #
 
 Description:
-Uses Aruba Central API to perform iPerf on IAP Virtual Controllers.
+Collection of Python scripts to perform batch troubleshooting with the Aruba Central API
 
-
-## Version 1.0.1 ##
+## batch_speedtest - IAP Speedtest/iPerf ##
+### Version 1.0.1 ###
 Usage:
 1. Generate API Token in Aruba Central and populate API credentials into 'credentials.json' (see sample)
 2. Edit python global variables at top of file
@@ -20,7 +20,7 @@ Usage:
 Limitations:
 - Aruba Central APAC-EAST cluster only
 
-## Version 1.0.2 ##
+### Version 1.0.2 ###
 Impromvements:
 - Added support for for different Aruba Central Regions using global variable.
 - Added support to target a particular site
