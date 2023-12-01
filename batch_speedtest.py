@@ -9,8 +9,8 @@ import sys
 ##GLOBAL VARIABLES##
 iperf_server_addr = "10.1.5.101"          
 iperf_test_time = 5                             
-output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/batch_speedtest_output/"
-credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"
+output_dir = "/temp/"
+credentials_dir = "/temp/"
 region = "APAC-EAST1"
 
 
