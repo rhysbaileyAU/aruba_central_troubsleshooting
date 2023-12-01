@@ -168,8 +168,6 @@ def fn_get_tshooting_log(ap_serial,ts_session_id):
     if response.status_code == 200:
         response_json = json.loads(response.text)
         ts_status = response_json['status']
-        #ts_hostname = response_json['hostname']
-        #ts_serial = response_json['serial']
         if ts_status == "COMPLETED":
                 ts_output = response_json['output']
         else:
@@ -218,7 +216,6 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
     global api_token                               
     global refresh_token                            
 
-    #Create dictionary for expired token credential details then write to 'credentials.old.json'
     dict_expired_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': fnc_api_token, 'refresh_token': fnc_refresh_token}
     with open(credentials_dir+"credentials.old.json", "w") as file: 
         json.dump(dict_expired_creds_out, file)     
@@ -231,18 +228,16 @@ def fn_refresh_token(fnc_api_token,fnc_refresh_token,fnc_client_id,fnc_client_se
 
     response = requests.request("POST", url, headers=headers, data=payload)
     
-    if response.status_code == 400:                                     #Error detection for an invalid refresh token
+    if response.status_code == 400:                            
         print("ERROR Code 400: Invalid Refresh Token - Create new Token in Aruba Central and populate credentials.json" )
         exit()
     
-    response_json = json.loads(response.text)           #Load response into JSON
-    api_token = response_json["access_token"]           #Read returned API token into varibale 'api_token'
-    refresh_token = response_json["refresh_token"]      #Read returned refresh token into variable 'refresh_token'
+    response_json = json.loads(response.text)           
+    api_token = response_json["access_token"]           
+    refresh_token = response_json["refresh_token"]
 
-    #Create dictionary for updated credential details
     dict_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': api_token, 'refresh_token': refresh_token}
 
-    #Output refreshed credentials to file 'credentials.json'
     with open(credentials_dir+"credentials.json", "w") as file:     
         json.dump(dict_creds_out, file)             
     file.close()
@@ -256,8 +251,6 @@ def fn_get_tokens():
 
     with open(credentials_dir+"credentials.json", "r") as file:     
         dict_creds_in = json.load(file)             
-
-        #Define script variables from file
         api_token = dict_creds_in["api_token"]
         refresh_token = dict_creds_in["refresh_token"]
         client_id = dict_creds_in["client_id"]
