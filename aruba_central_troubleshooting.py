@@ -12,11 +12,10 @@ credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"
 #region = "APAC-EAST1"
 
 
-def fn_get_ts_sessionid(ap_serial):
+def fn_get_ts_sessionid(credentials_file,region,ap_serial):
 
-    fn_get_tokens()          
-
-    global ts_session_id
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)         
 
     url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"/session"
     payload = {}
@@ -29,18 +28,19 @@ def fn_get_ts_sessionid(ap_serial):
         response_json = json.loads(response.text)
         ts_session_id = response_json['session_id']
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_get_ts_sessionid(ap_serial)
+        fn_refresh_token(region,credentials_file)
+        fn_get_ts_sessionid(credentials_file,region,ap_serial)
     elif response.status_code == 404:
         ts_session_id = 0
     else:
         print("Error getting sessionID for IAP ",ap_serial,"- code: ",response," ",response.text)
         exit()
+    return ts_session_id
       
-def fn_clear_ts_session(ap_serial,ts_session_id):
+def fn_clear_ts_session(credentials_file,region,ap_serial,ts_session_id):
     if ts_session_id > 0:
-
-        fn_get_tokens()
+        api_token = (fn_get_tokens(credentials_file)["api_token"])
+        region_specific_url = fn_get_api_url_for_region(region)    
 
         url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
         payload = {}
@@ -50,12 +50,13 @@ def fn_clear_ts_session(ap_serial,ts_session_id):
         response = requests.request("DELETE", url, headers=headers, data=payload)
 
         if response.status_code == 401:
-            fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-            fn_clear_ts_session(ap_serial,ts_session_id)
+            fn_refresh_token(region,credentials_file)
+            fn_clear_ts_session(credentials_file,region,ap_serial,ts_session_id)
 
-def fn_exec_iperf(ap_serial,iperf_server_addr):
-    global ts_session_id
-    fn_get_tokens()
+def fn_exec_iperf(credentials_file,region,ap_serial,iperf_server_addr,iperf_test_time):
+    
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)
 
     url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)
 
@@ -95,11 +96,12 @@ def fn_exec_iperf(ap_serial,iperf_server_addr):
             exit()
         ts_session_id = response_json['session_id']
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_exec_iperf(ap_serial,iperf_server_addr)
+        fn_refresh_token(region,credentials_file)
+        fn_exec_iperf(credentials_file,region,ap_serial,iperf_server_addr,iperf_test_time)
     else:
         print("Error Queueing iPerf Test - code: ",response," ",response.text)
         exit()
+    return ts_session_id
 
 def fn_fetch_iperf_result(ap_serial,iperf_server_addr):  
     global ts_session_id

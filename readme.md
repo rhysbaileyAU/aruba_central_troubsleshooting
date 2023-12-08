@@ -7,14 +7,20 @@ Collection of Python scripts to perform batch troubleshooting with the Aruba Cen
 
 Friday 8th December 2023:
 - Split out functions to seperate file
-- Refactored and tested 3 functions
+- Refactored and tested 6 functions
     - fn_get_tokens
     - fn_refresh_tokens
     - fn_get_api_url_for_region
+    - fn_get_ts_session_id
+    - fn_clear_ts_session_id
+    - fn_exec_iperf
 - Documenation for 3 functions
     - fn_get_tokens
     - fn_refresh_tokens
     - fn_get_api_url_for_region
+    - fn_get_ts_session_id
+    - fn_clear_ts_session_id
+    - fn_exec_iperf
 
 
 
