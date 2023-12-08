@@ -3,22 +3,21 @@
 Description:
 Collection of Python scripts to perform batch troubleshooting with the Aruba Central API
 
-## batch_speedtest - IAP Speedtest/iPerf ##
-### Version 1.0.1 ###
-Usage:
-1. Generate API Token in Aruba Central and populate API credentials into 'credentials.json' (see sample)
-2. Edit python global variables at top of file
-    - iperf_server_addr = "(address of iperf server)"          
-    - iperf_test_time = 5   (seconds to run iperf test)                           
-    - output_dir = "(directory to put output files)"  eg: "/temp/"  (Absolute Path)
-    - credentials_dir = "directory containing 'credentials.json'" eg: "/temp/"
-3. Run Script with arguments:                 
-    'python3 batch_speedtest.py ALL' - Run speedtest on all discovered Virtual controllers within Aruba Central Account, or
+### Development of 1.0.3 ###
 
-    'python3 batch_speedtest.py --group <groupname>' - Run speedtest on discovered Virtual controllers within the named group
+Friday 8th December 2023:
+- Split out functions to seperate file
+- Refactored and tested 3 functions
+    - fn_get_tokens
+    - fn_refresh_tokens
+    - fn_get_api_url_for_region
+- Documenation for 3 functions
+    - fn_get_tokens
+    - fn_refresh_tokens
+    - fn_get_api_url_for_region
 
-Limitations:
-- Aruba Central APAC-EAST cluster only
+
+
 
 ### Version 1.0.2 ###
 Impromvements:
@@ -50,5 +49,24 @@ Usage:
     python3 batch_speedtest.py --site list    <----- List all sites in Aruba Central Account (Same applies for '--group')
    
     python3 batch_speedtest.py --site 'site_name'  <---- run speedtet on all virtual controllers at a site (Same applies for '--group')
+
+## batch_speedtest - IAP Speedtest/iPerf ##
+### Version 1.0.1 ###
+Usage:
+1. Generate API Token in Aruba Central and populate API credentials into 'credentials.json' (see sample)
+2. Edit python global variables at top of file
+    - iperf_server_addr = "(address of iperf server)"          
+    - iperf_test_time = 5   (seconds to run iperf test)                           
+    - output_dir = "(directory to put output files)"  eg: "/temp/"  (Absolute Path)
+    - credentials_dir = "directory containing 'credentials.json'" eg: "/temp/"
+3. Run Script with arguments:                 
+    'python3 batch_speedtest.py ALL' - Run speedtest on all discovered Virtual controllers within Aruba Central Account, or
+
+    'python3 batch_speedtest.py --group <groupname>' - Run speedtest on discovered Virtual controllers within the named group
+
+Limitations:
+- Aruba Central APAC-EAST cluster only
+
+
 
 
