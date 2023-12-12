@@ -251,10 +251,10 @@ def fn_get_tokens(credentials_file):
     file.close()
     return dict_credentials                                        
 
-def fn_get_all_iap_virtualcontrollers():
-    global ap_site_dictionary
+def fn_get_all_iap_virtualcontrollers(credentials_file,region):
     
-    fn_get_tokens()
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)   
     
     url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?limit=250"
 
@@ -270,18 +270,19 @@ def fn_get_all_iap_virtualcontrollers():
         for ap in range(len(response_json["aps"])):
             if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
-        print("IAP Count: ",len(ap_site_dictionary))
+        return ap_site_dictionary
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_get_all_iap_virtualcontrollers()
+        fn_refresh_token(region,credentials_file)
+        fn_get_all_iap_virtualcontrollers(credentials_file,region)
     else:
-        print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
-        exit()
+        error = -1
+        return error
 
-def fn_get_iap_virtualcontrollers_for_group(groupname):
-    global ap_site_dictionary
-    
-    fn_get_tokens()
+
+def fn_get_iap_virtualcontrollers_for_group(credentials_file,region,groupname):
+
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)   
     
     url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?group={0}".format(groupname)
 
@@ -299,21 +300,20 @@ def fn_get_iap_virtualcontrollers_for_group(groupname):
             if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
         if len(ap_site_dictionary) < 1:
-            print("ERROR: No Online Virtual Controllers in Group for testing")
-            exit()
-        elif len(ap_site_dictionary) >= 1:
-            print("IAP Count: ",len(ap_site_dictionary))
+            error = -1
+            return error
+        return ap_site_dictionary
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_get_iap_virtualcontrollers_for_group(groupname)
+        fn_refresh_token(region,credentials_file)
+        fn_get_iap_virtualcontrollers_for_group(credentials_file,region,groupname)
     else:
-        print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
-        exit()
+        error = -2
+        return error
 
-def fn_get_iap_virtualcontrollers_for_site(sitename):
-    global ap_site_dictionary
+def fn_get_iap_virtualcontrollers_for_site(credentials_file,region,sitename):
     
-    fn_get_tokens()
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)
     
     url = "https://{0}".format(region_specific_url)+"/monitoring/v2/aps?site={0}".format(sitename)
 
@@ -330,20 +330,20 @@ def fn_get_iap_virtualcontrollers_for_site(sitename):
             if response_json["aps"][ap]["status"] == "Up" and response_json["aps"][ap]["swarm_master"] == True:
                 ap_site_dictionary.update({response_json["aps"][ap]["site"]:response_json["aps"][ap]["serial"]})
         if len(ap_site_dictionary) < 1:
-            print("ERROR: No Online Virtual Controllers in Site for testing")
-            exit()
-        elif len(ap_site_dictionary) >= 1:
-            print("IAP Count: ",len(ap_site_dictionary))
+            error = -1
+            return error
+        return ap_site_dictionary
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_get_iap_virtualcontrollers_for_group(sitename)
+        fn_refresh_token(region,credentials_file)
+        fn_get_iap_virtualcontrollers_for_site(credentials_file,region,sitename)
     else:
-        print("Error fetching list of IAP virtual controllers - code: ",response," ",response.text)
-        exit()
+        error = -2
+        return error
 
-def fn_list_aruba_central_sites():
+def fn_list_aruba_central_sites(credentials_file,region):
 
-    fn_get_tokens()
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)
 
     url = "https://{0}".format(region_specific_url)+"/central/v2/sites?limit=500"
 
@@ -355,21 +355,22 @@ def fn_list_aruba_central_sites():
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
-        print("Aruba Central Sites:")
-        print("=====================")
+        site_list = []
         for site in range(len(response_json["sites"])):
-            print(response_json["sites"][site]["site_name"])
-        exit()   
+            site_list.append(response_json["sites"][site]["site_name"])
+        return site_list   
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_list_aruba_central_sites()
+        fn_refresh_token(region,credentials_file)
+        fn_list_aruba_central_sites(credentials_file,region)
     else:
-        print("Error fetching list of Sites - code: ",response," ",response.text)
-        exit()
+        error = -1
+        return error
 
-def fn_list_aruba_central_groups():
 
-    fn_get_tokens()
+def fn_list_aruba_central_groups(credentials_file,region):
+
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)
 
     url = "https://{0}".format(region_specific_url)+"/configuration/v2/groups?limit=100&offset=0"
 
@@ -381,17 +382,16 @@ def fn_list_aruba_central_groups():
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
-        print("Aruba Central Groups:")
-        print("=====================")
+        group_list = []
         for group in range(len(response_json["data"])):
-            print(response_json["data"][group][0])
-        exit()
+            group_list.append(response_json["data"][group][0])
+        return group_list
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_list_aruba_central_groups()   
+        fn_refresh_token(region,credentials_file)
+        fn_list_aruba_central_sites(credentials_file,region)   
     else:
-        print("Error fetching list of Groups - code: ",response," ",response.text)
-        exit()
+        error = -1
+        return error
 
 def fn_display_expected_arguments():
     print("Expecting Arguments:")
@@ -401,7 +401,6 @@ def fn_display_expected_arguments():
     exit()
 
 def fn_get_api_url_for_region(region):
-    global region_specific_url
     ## Select region URL based on region variable ##
     if region == "US-1":
         region_specific_url = "app1-apigw.central.arubanetworks.com"

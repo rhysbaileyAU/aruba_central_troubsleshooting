@@ -34,7 +34,21 @@ Monday 11th & Tuesday 12th December 2023:
     - fn_get_tshooting_log
     - fn_pars_speedtest_result_json
 
-    
+Tuesday 12th December 2023:
+- Refactored and tested 6 functions
+    - fn_get_all_iap_virtualcontrollers
+    - fn_get_all_iap_virtualcontrollers_for_site
+    - fn_get_all_iap_virtualcontrollers_for_group
+    - fn_list_aruba_central_sites
+    - fn_list_aruba_central_groups
+- Documenation for 3 functions
+    - fn_get_all_iap_virtualcontrollers
+    - fn_get_all_iap_virtualcontrollers_for_site
+    - fn_get_all_iap_virtualcontrollers_for_group
+    - fn_list_aruba_central_sites
+    - fn_list_aruba_central_groups
+
+
 
 
 
