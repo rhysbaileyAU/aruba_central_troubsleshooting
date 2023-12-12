@@ -3,13 +3,9 @@ import json
 import time
 import re
 
-
-
-iperf_server_addr = "10.1.5.101"          
-iperf_test_time = 5                             
+                            
 output_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/ouputs/"
-credentials_dir = "/Users/rhysbailey/Documents/Code/Aruba Central/"
-#region = "APAC-EAST1"
+
 
 
 def fn_get_ts_sessionid(credentials_file,region,ap_serial):
@@ -92,20 +88,23 @@ def fn_exec_iperf(credentials_file,region,ap_serial,iperf_server_addr,iperf_test
     if response.status_code == 200:
         response_json = json.loads(response.text)
         if response_json["status"] != "QUEUED":
-            print("ERROR(3) - Unable to queue troubleshooting command, please try again")
-            exit()
+            error = -1
+            return error
         ts_session_id = response_json['session_id']
+        return ts_session_id
     elif response.status_code == 401:
         fn_refresh_token(region,credentials_file)
         fn_exec_iperf(credentials_file,region,ap_serial,iperf_server_addr,iperf_test_time)
     else:
-        print("Error Queueing iPerf Test - code: ",response," ",response.text)
-        exit()
-    return ts_session_id
+        error = -2
+        return error
 
-def fn_fetch_iperf_result(ap_serial,iperf_server_addr):  
-    global ts_session_id
-    fn_get_tokens()               
+
+
+def fn_fetch_iperf_result(credentials_file,region,ap_serial,iperf_server_addr,iperf_test_time):  
+
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)          
 
     url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)
 
@@ -135,28 +134,27 @@ def fn_fetch_iperf_result(ap_serial,iperf_server_addr):
         'Content-Type': 'application/json',
         'Authorization': 'Bearer '+api_token
     }
-
     response = requests.request("POST", url, headers=headers, data=payload)
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
         if response_json["status"] != "QUEUED":
-            print("ERROR(6) - Unable to queue troubleshooting command, please try again")
-            exit()
+            error = -1
+            return error
         ts_session_id = response_json['session_id']
+        return ts_session_id
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_fetch_iperf_result(ap_serial,iperf_server_addr)
+        fn_refresh_token(region,credentials_file)
+        fn_fetch_iperf_result(credentials_file,region,ap_serial,iperf_server_addr,iperf_test_time)
     else:
-        print("Error queueing collection of iPerf Test Results - code: ",response," ",response.text)
-        exit()
+        error = -2
+        return error
 
-def fn_get_tshooting_log(ap_serial,ts_session_id):      
+def fn_get_tshooting_log(credentials_file,region,ap_serial,ts_session_id):      
     
-    fn_get_tokens()
+    api_token = (fn_get_tokens(credentials_file)["api_token"])
+    region_specific_url = fn_get_api_url_for_region(region)   
     
-    global ts_output
-
     url = "https://{0}".format(region_specific_url)+"/troubleshooting/v1/devices/{0}".format(ap_serial)+"?session_id={0}".format(ts_session_id)
 
     payload = {}
@@ -167,21 +165,18 @@ def fn_get_tshooting_log(ap_serial,ts_session_id):
 
     if response.status_code == 200:
         response_json = json.loads(response.text)
-        ts_status = response_json['status']
-        if ts_status == "COMPLETED":
-                ts_output = response_json['output']
+        tslog_status = response_json['status']
+        tslog_ouput = response_json['output']
+        if tslog_status == "COMPLETED":
+            return tslog_ouput
         else:
             time.sleep(5)
-            fn_get_tshooting_log(ap_serial,ts_session_id)
+            fn_get_tshooting_log(credentials_file,region,ap_serial,ts_session_id)
     elif response.status_code == 401:
-        fn_refresh_token(api_token,refresh_token,client_id,client_secret)
-        fn_get_tshooting_log(ap_serial,ts_session_id)
-    else:
-        print("Error fetching Troubleshooting Log - code: ",response," ",response.text)
-        exit()
+        fn_refresh_token(region,credentials_file)
+        fn_get_tshooting_log(credentials_file,region,ap_serial,ts_session_id)
 
 def fn_pars_speedtest_result_json(log):        
-    global dict_result
 
     sysname = re.search(r"((([A-Z]+-)|[^!:])[A-Za-z]+-AP+[1-99]|[A-Za-z]+-L\d+-AP+[1-99])",log)
     date = re.search(r"(\d+\sJan\s\d+|\d+\sFeb\s\d+|\d+\sMar\s\d+|\d+\sApr\s\d+|\d+\sMay\s\d+|\d+\sJun\s\d+|\d+\sJul\s\d+|\d+\sAug\s\d+|\d+\sSep\s\d+|\d+\sOct\s\d+|\d+\sNov\s\d+|\d+\sDec\s\d+)",log)
@@ -201,7 +196,7 @@ def fn_pars_speedtest_result_json(log):
     client_raw = re.search(r"Local IP :(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})",log)
     client = re.split(":",client_raw.group(),maxsplit=1)
 
-    dict_result = {
+    speedtest_result_json = {
         "Systen Name": sysname.group(),
         "Test Date": date.group(),
         "Test Time": time[7],
@@ -210,6 +205,7 @@ def fn_pars_speedtest_result_json(log):
         "Server IP": server[1],
         "Client IP": client[1]
     }
+    return speedtest_result_json
 
 def fn_refresh_token(region,credentials_file):
         
@@ -235,11 +231,7 @@ def fn_refresh_token(region,credentials_file):
     post_api_token = response_json["access_token"]           
     post_refresh_token = response_json["refresh_token"]
 
-    print(pre_api_token)
-    print(post_api_token)
-
     if post_api_token != pre_api_token:
-        print("Dong the thing")
         dict_expired_creds_out = {'client_id': client_id, 'client_secret': client_secret, 'api_token': pre_api_token, 'refresh_token': pre_refresh_token}
         with open(credentials_file+".old", "w") as file: 
             json.dump(dict_expired_creds_out, file)     

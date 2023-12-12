@@ -22,6 +22,19 @@ Friday 8th December 2023:
     - fn_clear_ts_session_id
     - fn_exec_iperf
 
+Monday 11th & Tuesday 12th December 2023:
+- Refactored and tested 6 functions
+    - fn_exec_iperf (improvments)
+    - fn_fetch_iperf_result
+    - fn_get_tshooting_log
+    - fn_pars_speedtest_result_json
+- Documenation for 3 functions
+    - fn_exec_iperf (improvments)
+    - fn_fetch_iperf_result
+    - fn_get_tshooting_log
+    - fn_pars_speedtest_result_json
+
+    
 
 
 
